@@ -9,8 +9,10 @@
 
 namespace zaboy\Callback\Interruptor;
 
+use Opis\Closure\SerializableClosure;
 use zaboy\Callback\CallbackException;
 use zaboy\Callback\Callback;
+use zaboy\Callback\InterruptorInterface;
 use zaboy\Callback\Interruptor\Job;
 
 /**
@@ -19,7 +21,7 @@ use zaboy\Callback\Interruptor\Job;
  * @category   callback
  * @package    zaboy
  */
-class Process extends Callback
+class Process extends InterruptorAbstract implements InterruptorInterface
 {
 
     const CALLBACK_KEY = 'callback';
@@ -36,7 +38,7 @@ class Process extends Callback
     public function __invoke($value)
     {
         if (!is_file($this->getScriptName())) {
-            throw new CallbackException('Sript "' . $this->getScriptName() . '" does not exist in the folder "Script"');
+            throw new CallbackException('Script "' . $this->getScriptName() . '" does not exist in the folder "Script"');
         }
         $cmd = 'php ' . $this->getScriptName();
 
@@ -48,6 +50,7 @@ class Process extends Callback
         // Files names for stdout and stderr
         $result[self::STDOUT_KEY] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('stdout_', 1);
         $result[self::STDERR_KEY] = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('stderr_', 1);
+        $result[static::INTERRUPTOR_TYPE_KEY] = static::class;
         $cmd .= "  1>{$result[self::STDOUT_KEY]} 2>{$result[self::STDERR_KEY]}";
 
         if (substr(php_uname(), 0, 7) !== "Windows") {
@@ -56,6 +59,7 @@ class Process extends Callback
 
         //from apache - $command = 'nohup '.$this->command.' > /dev/null 2>&1 & echo $!';
         $result[self::PID_KEY] = trim(shell_exec($cmd));
+        $result[static::MACHINE_NAME_KEY] = getenv(static::ENV_VAR_MACHINE_NAME);
         return $result;
 
 //        $errors = $this->parser->parseFile($stdErrFilename);
